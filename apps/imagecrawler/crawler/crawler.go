@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+const maxDepth = 1
+
 type Crawler struct {
 	urlQueue         *queue.URLQueue
 	db               db.DB
@@ -43,21 +45,12 @@ func (c *Crawler) Crawl() {
 			return
 		}
 
-		// Try to acquire a token from the semaphore
 		c.sem <- struct{}{}
 
-		// Create a new context for the current page with the specified timeout
 		_, alreadyVisited := c.visited.LoadOrStore(URL.URL, true)
 		if alreadyVisited {
-			// Release the token before skipping
 			<-c.sem
 			continue
-		}
-
-		// Check depth and skip if it exceeds maximum depth
-		if URL.Depth >= 1 {
-			<-c.sem
-			return
 		}
 
 		pageCtx, pageCancel := context.WithTimeout(context.Background(), time.Minute*time.Duration(c.timeout))
@@ -85,6 +78,12 @@ func (c *Crawler) Crawl() {
 			fmt.Println("DownloadImages Err", err)
 		}
 
+		if URL.Depth >= maxDepth-1 {
+			pageCancel()
+			<-c.sem
+			continue
+		}
+
 		links, err := extracter.ExtractLinks(pageCtx, b, URL.URL)
 		if err != nil {
 			fmt.Println("ExtractLinks Err", err)
@@ -93,17 +92,13 @@ func (c *Crawler) Crawl() {
 			continue
 		}
 
-		// Enqueue extracted links for further crawling with increased depth
 		for _, link := range links {
 			c.urlQueue.Enqueue(link, URL.Depth+1)
-
-			// Start a new goroutine for each new URL
 			c.wg.Add(1)
 			go c.Crawl()
 		}
 
 		pageCancel()
-		// Release the token after finishing the work
 		<-c.sem
 	}
 }

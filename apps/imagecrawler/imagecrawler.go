@@ -16,7 +16,7 @@ func RunCrawler() {
 	cfg := config.MustParseConfig()
 	var wg sync.WaitGroup
 	urlQueue := &queue.URLQueue{}
-	visited := &sync.Map{} // Use a sync.Map to store visited URLs
+	visited := &sync.Map{}
 
 	if err := os.MkdirAll("apps/imagecrawler/"+cfg.ImagesFolderName, os.ModePerm); err != nil {
 		fmt.Printf("Error creating image directory: %v\n", err)
@@ -24,9 +24,9 @@ func RunCrawler() {
 	}
 
 	// Command line flags
-	urls := flag.String("urls", "https://www.slickerhq.com", "Comma-separated list of URLs to start crawling from")
+	urls := flag.String("urls", "https://www.slickerhq.com,https://www.ycombinator.com", "Comma-separated list of URLs to start crawling from")
 	timeoutInMinutes := flag.Uint("page-timeout", 2, "Crawling timeout per page duration in minutes")
-	maxWorkers := flag.Int("max-workers", 100, "Maximum number of goroutines")
+	maxWorkers := flag.Int("max-workers", 1, "Maximum number of goroutines")
 	flag.Parse()
 
 	if *urls == "" {
