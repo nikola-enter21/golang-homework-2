@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const maxDepth = 1
+const maxDepth = 0
 
 type Crawler struct {
 	urlQueue         *queue.URLQueue
@@ -78,7 +78,7 @@ func (c *Crawler) Crawl() {
 			fmt.Println("DownloadImages Err", err)
 		}
 
-		if URL.Depth >= maxDepth-1 {
+		if URL.Depth >= maxDepth {
 			pageCancel()
 			<-c.sem
 			continue
