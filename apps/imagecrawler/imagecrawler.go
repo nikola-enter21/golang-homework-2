@@ -25,8 +25,8 @@ func RunCrawler() {
 
 	// Command line flags
 	urls := flag.String("urls", "https://www.slickerhq.com,https://www.ycombinator.com", "Comma-separated list of URLs to start crawling from")
-	timeoutInMinutes := flag.Uint("page-timeout", 2, "Crawling timeout per page duration in minutes")
-	maxWorkers := flag.Int("max-workers", 1, "Maximum number of goroutines")
+	timeoutInMinutes := flag.Uint("page-timeout", 100, "Crawling timeout per page duration in minutes")
+	maxWorkers := flag.Int("max-workers", 1000, "Maximum number of goroutines")
 	flag.Parse()
 
 	if *urls == "" {
@@ -45,29 +45,18 @@ func RunCrawler() {
 	}
 	defer db.Close()
 
-	// Use a buffered channel as a semaphore to limit the number of goroutines
-	sem := make(chan struct{}, *maxWorkers)
 	c := crawler.NewCrawler(
 		urlQueue,
 		db,
 		*timeoutInMinutes,
 		cfg.ImagesFolderName,
 		visited,
-		sem,
 		&wg,
 	)
 
-	for i := 0; i < min(*maxWorkers, len(startURLs)); i++ {
-		wg.Add(1)
+	wg.Add(*maxWorkers)
+	for i := 0; i < *maxWorkers; i++ {
 		go c.Crawl()
 	}
-
 	wg.Wait()
-}
-
-func min(a, b int) int {
-	if a > b {
-		return b
-	}
-	return a
 }

@@ -20,18 +20,16 @@ type Crawler struct {
 	timeout          uint
 	imagesFolderName string
 	visited          *sync.Map
-	sem              chan struct{}
 	wg               *sync.WaitGroup
 }
 
-func NewCrawler(urlQueue *queue.URLQueue, db db.DB, timeout uint, imagesFolderName string, visited *sync.Map, sem chan struct{}, wg *sync.WaitGroup) *Crawler {
+func NewCrawler(urlQueue *queue.URLQueue, db db.DB, timeout uint, imagesFolderName string, visited *sync.Map, wg *sync.WaitGroup) *Crawler {
 	return &Crawler{
 		urlQueue:         urlQueue,
 		db:               db,
 		timeout:          timeout,
 		imagesFolderName: imagesFolderName,
 		visited:          visited,
-		sem:              sem,
 		wg:               wg,
 	}
 }
@@ -45,11 +43,8 @@ func (c *Crawler) Crawl() {
 			return
 		}
 
-		c.sem <- struct{}{}
-
 		_, alreadyVisited := c.visited.LoadOrStore(URL.URL, true)
 		if alreadyVisited {
-			<-c.sem
 			continue
 		}
 
@@ -60,7 +55,6 @@ func (c *Crawler) Crawl() {
 			fmt.Println("Fetching error:", err)
 			resp.Body.Close()
 			pageCancel()
-			<-c.sem
 			continue
 		}
 		b, err := io.ReadAll(resp.Body)
@@ -68,7 +62,6 @@ func (c *Crawler) Crawl() {
 			fmt.Println("Reading body: ", err)
 			resp.Body.Close()
 			pageCancel()
-			<-c.sem
 			continue
 		}
 		resp.Body.Close()
@@ -80,7 +73,6 @@ func (c *Crawler) Crawl() {
 
 		if URL.Depth >= maxDepth {
 			pageCancel()
-			<-c.sem
 			continue
 		}
 
@@ -88,17 +80,13 @@ func (c *Crawler) Crawl() {
 		if err != nil {
 			fmt.Println("ExtractLinks Err", err)
 			pageCancel()
-			<-c.sem
 			continue
 		}
 
 		for _, link := range links {
 			c.urlQueue.Enqueue(link, URL.Depth+1)
-			c.wg.Add(1)
-			go c.Crawl()
 		}
 
 		pageCancel()
-		<-c.sem
 	}
 }
