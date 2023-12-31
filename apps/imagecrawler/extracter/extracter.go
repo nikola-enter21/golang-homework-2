@@ -5,6 +5,7 @@ import (
 	"awesomeProject1/db"
 	"awesomeProject1/db/model"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	urllib "net/url"
@@ -70,7 +71,12 @@ func DownloadImages(ctx context.Context, imagesFolderName string, db db.DB, body
 		case html.SelfClosingTagToken, html.StartTagToken:
 			token := tokenizer.Token()
 			if token.Data == "img" {
-				err := saveImage(ctx, imagesFolderName, db, extractImageFromTag(token, fullURL))
+				img, err := extractImageFromToken(token, fullURL)
+				if err != nil {
+					fmt.Println("Err extracting image: ", err)
+					continue
+				}
+				err = saveImage(ctx, imagesFolderName, db, img)
 				if err != nil {
 					fmt.Println("Err saving image:", err)
 					continue
@@ -89,12 +95,16 @@ func mustParseURL(rawURL string) *urllib.URL {
 	return u
 }
 
-func extractImageFromTag(token html.Token, fullURL string) *model.Image {
+func extractImageFromToken(token html.Token, fullURL string) (*model.Image, error) {
 	img := &model.Image{}
 
 	for _, attr := range token.Attr {
 		switch attr.Key {
 		case "src":
+			if strings.HasPrefix(attr.Val, "data:") {
+				return nil, errors.New("crawler does not support base64 images")
+			}
+
 			imgURL := mustParseURL(attr.Val)
 			imgURL = resolveURL(fullURL, imgURL)
 			img.SourceURL = imgURL.String()
@@ -104,7 +114,6 @@ func extractImageFromTag(token html.Token, fullURL string) *model.Image {
 			var w, h string
 			response, err := http.Get(imgURL.String())
 			if err != nil {
-				fmt.Println(err)
 				continue
 			}
 
@@ -138,7 +147,7 @@ func extractImageFromTag(token html.Token, fullURL string) *model.Image {
 		}
 	}
 
-	return img
+	return img, nil
 }
 
 func resolveURL(baseURL string, relativeURL *urllib.URL) *urllib.URL {
