@@ -1,3 +1,4 @@
 .idea
 logger/logfile.log
 apps/imagecrawler/images
+.DS_Store
