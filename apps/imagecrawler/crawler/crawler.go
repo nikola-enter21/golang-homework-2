@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const maxDepth = 0
+const maxDepth = 1
 
 type job struct {
 	URL   string

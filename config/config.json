@@ -1,4 +1,4 @@
 {
-  "POSTGRES_DSN": "postgres://yupgqagb:9U5__BeJl54iGWl6tuOT6dAevFzv0aZx@raja.db.elephantsql.com/yupgqagb",
+  "POSTGRES_DSN": "postgresql://postgres:postgres@localhost/postgres?sslmode=disable",
   "IMAGES_FOLDER_NAME": "images"
 }
