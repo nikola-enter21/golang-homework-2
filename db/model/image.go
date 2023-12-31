@@ -15,10 +15,12 @@ type Image struct {
 type ImageFormat string
 
 const (
-	FormatJPG ImageFormat = "jpg"
-	FormatPNG ImageFormat = "png"
-	FormatGIF ImageFormat = "gif"
-	FormatSVG ImageFormat = "svg"
+	FormatJPG  ImageFormat = "jpg"
+	FormatJPEG ImageFormat = "jpeg"
+	FormatPNG  ImageFormat = "png"
+	FormatGIF  ImageFormat = "gif"
+	FormatSVG  ImageFormat = "svg"
+	FormatWEBP ImageFormat = "webp"
 )
 
 type ListImagesFilters struct {
@@ -26,7 +28,7 @@ type ListImagesFilters struct {
 }
 
 func ImageFormatValues() []ImageFormat {
-	return []ImageFormat{FormatPNG, FormatGIF, FormatSVG, FormatJPG}
+	return []ImageFormat{FormatPNG, FormatGIF, FormatSVG, FormatJPG, FormatJPEG, FormatWEBP}
 }
 
 func ImagesCountPerFormat(images []*Image) map[ImageFormat]uint32 {
