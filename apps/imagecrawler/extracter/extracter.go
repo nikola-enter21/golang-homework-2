@@ -107,16 +107,20 @@ func extractImageFromToken(token html.Token, fullURL string) (*model.Image, erro
 
 			imgURL := mustParseURL(attr.Val)
 			imgURL = resolveURL(fullURL, imgURL)
-			img.SourceURL = imgURL.String()
-			img.Format = model.ImageFormat(strings.TrimPrefix(filepath.Ext(filepath.Base(imgURL.Path)), "."))
-			img.Filename = uuid.NewString()
-
-			var w, h string
 			response, err := http.Get(imgURL.String())
 			if err != nil {
-				continue
+				return nil, err
 			}
 
+			img.SourceURL = imgURL.String()
+			img.Filename = uuid.NewString()
+			format, err := getFileExtension(response.Header.Get("Content-Type"))
+			if err != nil {
+				return nil, err
+			}
+			img.Format = model.ImageFormat(format)
+
+			var w, h string
 			switch img.Format {
 			case "jpg", "png", "jpeg", "gif":
 				w, h, err = image.Dimensions(response.Body)
@@ -190,4 +194,23 @@ func saveImage(ctx context.Context, imagesFolderName string, db db.DB, img *mode
 	}
 
 	return nil
+}
+
+func getFileExtension(contentType string) (string, error) {
+	switch {
+	case strings.HasPrefix(contentType, "image/jpeg"):
+		return ".jpg", nil
+	case strings.HasPrefix(contentType, "image/jpg"):
+		return ".jpg", nil
+	case strings.HasPrefix(contentType, "image/png"):
+		return ".png", nil
+	case strings.HasPrefix(contentType, "image/gif"):
+		return ".gif", nil
+	case strings.HasPrefix(contentType, "image/svg"):
+		return ".svg", nil
+	case strings.HasPrefix(contentType, "image/webp"):
+		return ".webp", nil
+	default:
+		return "", errors.New("invalid format")
+	}
 }
