@@ -95,7 +95,6 @@ func DownloadImages(
 				if alreadyDownloaded {
 					continue
 				}
-				log.Infof("Downloading: %s", img.SourceURL)
 				err = saveImage(ctx, imagesFolderName, db, img)
 				if err != nil {
 					log.Infof("Saving image error: %s", err)
