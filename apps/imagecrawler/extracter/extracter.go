@@ -4,9 +4,9 @@ import (
 	"awesomeProject1/apps/imagecrawler/image"
 	"awesomeProject1/db"
 	"awesomeProject1/db/model"
+	"awesomeProject1/logger"
 	"context"
 	"errors"
-	"fmt"
 	"github.com/google/uuid"
 	urllib "net/url"
 	"sync"
@@ -17,6 +17,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+)
+
+var (
+	log = logger.New()
 )
 
 func ExtractLinks(ctx context.Context, bodyBytes []byte, fullURL string) ([]string, error) {
@@ -81,8 +85,11 @@ func DownloadImages(
 			if token.Data == "img" {
 				img, err := extractImageFromToken(token, fullURL)
 				if err != nil {
-					fmt.Println("Err extracting image: ", err)
+					log.Infof("Extracting image error: %s", err)
 					continue
+				}
+				if len(img.SourceURL) == 0 {
+					log.Infof("Image does not have src attribute: %s", token.String())
 				}
 				_, alreadyDownloaded := downloaded.LoadOrStore(img.SourceURL, true)
 				if alreadyDownloaded {
@@ -90,7 +97,7 @@ func DownloadImages(
 				}
 				err = saveImage(ctx, imagesFolderName, db, img)
 				if err != nil {
-					fmt.Println("Err saving image:", err)
+					log.Infof("Saving image error: %s", err)
 					continue
 				}
 			}
@@ -109,7 +116,6 @@ func mustParseURL(rawURL string) *urllib.URL {
 
 func extractImageFromToken(token html.Token, fullURL string) (*model.Image, error) {
 	img := &model.Image{}
-
 	for _, attr := range token.Attr {
 		switch attr.Key {
 		case "src":
@@ -137,19 +143,19 @@ func extractImageFromToken(token html.Token, fullURL string) (*model.Image, erro
 			case "jpg", "png", "jpeg", "gif":
 				w, h, err = image.Dimensions(response.Body)
 				if err != nil {
-					fmt.Printf("Error parsing image resolution for %s: %v\n", imgURL.String(), err)
+					log.Infof("Error parsing image resolution for %s: %v\n", imgURL.String(), err)
 					continue
 				}
 			case "svg":
 				w, h, err = image.SVGDimensions(response.Body)
 				if err != nil {
-					fmt.Printf("Error parsing svg image resolution for %s: %v\n", imgURL.String(), err)
+					log.Infof("Error parsing svg image resolution for %s: %v\n", imgURL.String(), err)
 					continue
 				}
 			case "webp":
 				w, h, err = image.WebpDimensions(response.Body)
 				if err != nil {
-					fmt.Printf("Error parsing webp image resolution for %s: %v\n", imgURL.String(), err)
+					log.Infof("Error parsing webp image resolution for %s: %v\n", imgURL.String(), err)
 					continue
 				}
 			}
@@ -169,7 +175,7 @@ func extractImageFromToken(token html.Token, fullURL string) (*model.Image, erro
 func resolveURL(baseURL string, relativeURL *urllib.URL) *urllib.URL {
 	base, err := urllib.Parse(baseURL)
 	if err != nil {
-		fmt.Printf("Error parsing base URL %s: %v\n", baseURL, err)
+		log.Infof("Error parsing base URL %s: %v\n", baseURL, err)
 		return relativeURL
 	}
 	return base.ResolveReference(relativeURL)

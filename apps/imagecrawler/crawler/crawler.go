@@ -3,16 +3,18 @@ package crawler
 import (
 	"awesomeProject1/apps/imagecrawler/extracter"
 	"awesomeProject1/db"
+	"awesomeProject1/logger"
 	"context"
-	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"sync"
 	"time"
 )
 
-const maxDepth = 1
+var (
+	log      = logger.New()
+	maxDepth = 0
+)
 
 type job struct {
 	URL   string
@@ -32,7 +34,7 @@ type Crawler struct {
 
 func NewCrawler(db db.DB, workers int, timeout int, imagesFolderName string) *Crawler {
 	return &Crawler{
-		jobs:             make(chan job),
+		jobs:             make(chan job, 1),
 		workers:          workers,
 		db:               db,
 		timeout:          timeout,
@@ -44,11 +46,6 @@ func NewCrawler(db db.DB, workers int, timeout int, imagesFolderName string) *Cr
 }
 
 func (c *Crawler) Start(startingLinks []string) {
-	if err := os.MkdirAll("apps/imagecrawler/"+c.imagesFolderName, os.ModePerm); err != nil {
-		fmt.Printf("Error creating image directory: %v\n", err)
-		os.Exit(1)
-	}
-
 	for i := 0; i < c.workers; i++ {
 		go func() {
 			for j := range c.jobs {
@@ -73,17 +70,17 @@ func (c *Crawler) runJob(j job) {
 	}
 
 	pageCtx, pageCancel := context.WithTimeout(context.Background(), time.Minute*time.Duration(c.timeout))
-	fmt.Println("Crawling URL", j.URL, "Depth:", j.Depth)
+	log.Infoln("Crawling URL", j.URL, "Depth:", j.Depth)
 	resp, err := http.Get(j.URL)
 	if err != nil {
-		fmt.Println("Fetching error:", err)
+		log.Infof("Fetching error: %s", err)
 		resp.Body.Close()
 		pageCancel()
 		return
 	}
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("Reading body: ", err)
+		log.Infof("Reading body error: %s", err)
 		resp.Body.Close()
 		pageCancel()
 		return
@@ -92,7 +89,7 @@ func (c *Crawler) runJob(j job) {
 
 	err = extracter.DownloadImages(pageCtx, c.imagesFolderName, c.db, b, j.URL, c.downloaded)
 	if err != nil {
-		fmt.Println("DownloadImages Err", err)
+		log.Infof("DownloadImages error: %s", err)
 	}
 
 	if j.Depth >= maxDepth {
@@ -102,7 +99,7 @@ func (c *Crawler) runJob(j job) {
 
 	links, err := extracter.ExtractLinks(pageCtx, b, j.URL)
 	if err != nil {
-		fmt.Println("ExtractLinks Err", err)
+		log.Infof("ExtractLinks error: %s", err)
 		pageCancel()
 		return
 	}
