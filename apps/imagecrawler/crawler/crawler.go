@@ -13,7 +13,7 @@ import (
 
 var (
 	log      = logger.New()
-	maxDepth = 0
+	maxDepth = 1
 )
 
 type job struct {
@@ -34,7 +34,7 @@ type Crawler struct {
 
 func NewCrawler(db db.DB, workers int, timeout int, imagesFolderName string) *Crawler {
 	return &Crawler{
-		jobs:             make(chan job, 1),
+		jobs:             make(chan job),
 		workers:          workers,
 		db:               db,
 		timeout:          timeout,
