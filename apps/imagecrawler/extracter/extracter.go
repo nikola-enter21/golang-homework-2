@@ -89,12 +89,13 @@ func DownloadImages(
 					continue
 				}
 				if len(img.SourceURL) == 0 {
-					log.Infof("Image does not have src attribute: %s", token.String())
+					continue
 				}
 				_, alreadyDownloaded := downloaded.LoadOrStore(img.SourceURL, true)
 				if alreadyDownloaded {
 					continue
 				}
+				log.Infof("Downloading: %s", img.SourceURL)
 				err = saveImage(ctx, imagesFolderName, db, img)
 				if err != nil {
 					log.Infof("Saving image error: %s", err)
