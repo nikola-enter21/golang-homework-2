@@ -41,11 +41,6 @@ func NewCrawler(db db.DB, workers int, timeout int, imagesFolderName string) *Cr
 	}
 }
 
-func (c *Crawler) enqueue(j job) {
-	c.wg.Add(1)
-	c.jobs <- j
-}
-
 func (c *Crawler) Start(startingLinks []string) {
 	if err := os.MkdirAll("apps/imagecrawler/"+c.imagesFolderName, os.ModePerm); err != nil {
 		fmt.Printf("Error creating image directory: %v\n", err)
@@ -62,7 +57,8 @@ func (c *Crawler) Start(startingLinks []string) {
 	}
 
 	for _, link := range startingLinks {
-		c.enqueue(job{URL: link, Depth: 0})
+		c.wg.Add(1)
+		c.jobs <- job{URL: link, Depth: 0}
 	}
 	c.wg.Wait()
 	close(c.jobs)
@@ -110,8 +106,10 @@ func (c *Crawler) runJob(j job) {
 	}
 
 	for _, link := range links {
-		c.enqueue(job{URL: link, Depth: j.Depth + 1})
+		c.wg.Add(1)
+		go func(link string) {
+			c.jobs <- job{URL: link, Depth: j.Depth + 1}
+		}(link)
 	}
-
 	pageCancel()
 }
