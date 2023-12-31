@@ -211,17 +211,17 @@ func saveImage(ctx context.Context, imagesFolderName string, db db.DB, img *mode
 func getFileExtension(contentType string) (string, error) {
 	switch {
 	case strings.HasPrefix(contentType, "image/jpeg"):
-		return ".jpg", nil
+		return "jpg", nil
 	case strings.HasPrefix(contentType, "image/jpg"):
-		return ".jpg", nil
+		return "jpg", nil
 	case strings.HasPrefix(contentType, "image/png"):
-		return ".png", nil
+		return "png", nil
 	case strings.HasPrefix(contentType, "image/gif"):
-		return ".gif", nil
+		return "gif", nil
 	case strings.HasPrefix(contentType, "image/svg"):
-		return ".svg", nil
+		return "svg", nil
 	case strings.HasPrefix(contentType, "image/webp"):
-		return ".webp", nil
+		return "webp", nil
 	default:
 		return "", errors.New("invalid format")
 	}
