@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	urllib "net/url"
+	"sync"
 
 	"golang.org/x/net/html"
 	"io"
@@ -54,7 +55,14 @@ func ExtractLinks(ctx context.Context, bodyBytes []byte, fullURL string) ([]stri
 	}
 }
 
-func DownloadImages(ctx context.Context, imagesFolderName string, db db.DB, bodyBytes []byte, fullURL string) error {
+func DownloadImages(
+	ctx context.Context,
+	imagesFolderName string,
+	db db.DB,
+	bodyBytes []byte,
+	fullURL string,
+	downloaded *sync.Map,
+) error {
 	tokenizer := html.NewTokenizer(strings.NewReader(string(bodyBytes)))
 	for {
 		if ctx.Err() != nil {
@@ -74,6 +82,10 @@ func DownloadImages(ctx context.Context, imagesFolderName string, db db.DB, body
 				img, err := extractImageFromToken(token, fullURL)
 				if err != nil {
 					fmt.Println("Err extracting image: ", err)
+					continue
+				}
+				_, alreadyDownloaded := downloaded.LoadOrStore(img.SourceURL, true)
+				if alreadyDownloaded {
 					continue
 				}
 				err = saveImage(ctx, imagesFolderName, db, img)

@@ -26,6 +26,7 @@ type Crawler struct {
 	timeout          int
 	imagesFolderName string
 	visited          *sync.Map
+	downloaded       *sync.Map
 	wg               *sync.WaitGroup
 }
 
@@ -37,6 +38,7 @@ func NewCrawler(db db.DB, workers int, timeout int, imagesFolderName string) *Cr
 		timeout:          timeout,
 		imagesFolderName: imagesFolderName,
 		visited:          &sync.Map{},
+		downloaded:       &sync.Map{},
 		wg:               &sync.WaitGroup{},
 	}
 }
@@ -88,7 +90,7 @@ func (c *Crawler) runJob(j job) {
 	}
 	resp.Body.Close()
 
-	err = extracter.DownloadImages(pageCtx, c.imagesFolderName, c.db, b, j.URL)
+	err = extracter.DownloadImages(pageCtx, c.imagesFolderName, c.db, b, j.URL, c.downloaded)
 	if err != nil {
 		fmt.Println("DownloadImages Err", err)
 	}
