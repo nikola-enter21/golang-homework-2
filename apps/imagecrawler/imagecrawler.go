@@ -15,7 +15,7 @@ func RunCrawler() {
 
 	// Command line flags
 	urls := flag.String("urls", "https://www.slickerhq.com,https://www.ycombinator.com", "Comma-separated list of URLs to start crawling from")
-	timeoutInMinutes := flag.Int("page-timeout", 100, "Crawling timeout per page duration in minutes")
+	timeoutInMinutes := flag.Int("page-timeout", 2, "Crawling timeout per page duration in minutes")
 	maxWorkers := flag.Int("max-workers", 1000, "Maximum number of goroutines")
 	flag.Parse()
 
